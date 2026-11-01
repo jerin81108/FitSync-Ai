@@ -9,7 +9,15 @@ import '../../../core/widgets/glass_card.dart';
 import '../../../core/widgets/why_target_bottom_sheet.dart';
 import '../../auth/auth_controller.dart';
 import '../../checkin/widgets/morning_checkin_card.dart';
+import '../../female_health/female_health_controller.dart';
+import '../../female_health/widgets/female_health_modal.dart';
+import '../../injury/screens/injury_guard_modal.dart';
 import '../../injury/widgets/active_injury_banner.dart';
+import '../../monetization/widgets/context_recommendation_card.dart';
+import '../../monetization/widgets/premium_plan_modal.dart';
+import '../../notifications/notification_controller.dart';
+import '../../notifications/notification_templates.dart';
+import '../../progression/anti_robot_controller.dart';
 import '../../readiness/readiness_controller.dart';
 import '../../scaling/target_controller.dart';
 import '../../streaks/streak_controller.dart';
@@ -28,6 +36,9 @@ class HomeScreen extends ConsumerWidget {
     final readinessState = ref.watch(readinessControllerProvider);
     final target = ref.watch(targetControllerProvider);
     final streakState = ref.watch(streakControllerProvider);
+    final femaleHealth = ref.watch(femaleHealthControllerProvider);
+    final antiRobot = ref.watch(antiRobotControllerProvider);
+    final notifController = ref.read(notificationControllerProvider.notifier);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final userName = auth.user?.name ?? 'Athlete';
@@ -36,6 +47,28 @@ class HomeScreen extends ConsumerWidget {
 
     // Find suggested workout object
     final suggestedWorkout = WorkoutLibrary.findById(target.suggestedWorkoutId);
+
+    // Determine today's AI Coach message context
+    String coachContext = 'regular_morning';
+    if (readinessState.checkin.isExamDay) {
+      coachContext = 'exam_day';
+    } else if (readinessState.checkin.cyclePhase?.toLowerCase() == 'menstrual') {
+      coachContext = 'cycle_menstrual';
+    } else if (antiRobot.isConsolidating) {
+      coachContext = 'anti_robot';
+    } else if (readinessState.checkin.sleepHours < 5.5) {
+      coachContext = 'low_sleep';
+    } else if (readinessState.checkin.stressLevel >= 4) {
+      coachContext = 'high_stress';
+    } else if (target.isPushDay) {
+      coachContext = 'push_day';
+    } else if (target.isIntentionalRestDay) {
+      coachContext = 'rest_day';
+    }
+    final coachMessage = NotificationTemplates.getMessage(
+      context: coachContext,
+      tone: ref.watch(notificationControllerProvider).tone,
+    );
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
@@ -97,10 +130,190 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              // 2. Active Injury Banner (if injury guard active)
+              const SizedBox(height: 14),
+
+              // 2. Quick Life-Sync Action Strip (Female Health, Anti-Robot Level, Premium ₹99)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    // Female Health Sync Pill
+                    GestureDetector(
+                      onTap: () => FemaleHealthModal.show(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: femaleHealth.isCycleTrackingEnabled
+                              ? AppColors.warmCoral.withValues(alpha: 0.14)
+                              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: femaleHealth.isCycleTrackingEnabled ? AppColors.warmCoral : Colors.transparent,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('🌸', style: TextStyle(fontSize: 14)),
+                            const SizedBox(width: 6),
+                            Text(
+                              femaleHealth.isCycleTrackingEnabled
+                                  ? 'Cycle: ${femaleHealth.currentPhase.label.split(' ').first}'
+                                  : 'Female Health Sync',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: femaleHealth.isCycleTrackingEnabled ? AppColors.warmCoral : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Anti-Robot Level Pill
+                    GestureDetector(
+                      onTap: () {
+                        showDialog<void>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            backgroundColor: isDark ? AppColors.darkCard : Colors.white,
+                            title: const Row(
+                              children: [
+                                Text('🤖 Anti-Robot Progression'),
+                              ],
+                            ),
+                            content: Text(
+                              'Current: ${antiRobot.levelTitle}\n\n${antiRobot.coachNote}\n\nNormal apps force users into higher levels without checking fatigue. FitSync AI checks how hard it felt and consolidates stamina before jumping to the next level.',
+                              style: const TextStyle(fontSize: 13, height: 1.4),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                child: const Text('Got It'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: antiRobot.isConsolidating
+                              ? AppColors.mintAccent.withValues(alpha: 0.15)
+                              : (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.04)),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: antiRobot.isConsolidating ? AppColors.mintAccent : Colors.transparent,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('🤖', style: TextStyle(fontSize: 14)),
+                            const SizedBox(width: 6),
+                            Text(
+                              antiRobot.isConsolidating
+                                  ? 'Level ${antiRobot.currentLevel} (Consolidating)'
+                                  : 'Level ${antiRobot.currentLevel}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: antiRobot.isConsolidating ? AppColors.deepTeal : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+
+                    // Premium ₹99/mo Pill
+                    GestureDetector(
+                      onTap: () => PremiumPlanModal.show(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepTeal.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('💎', style: TextStyle(fontSize: 14)),
+                            SizedBox(width: 6),
+                            Text(
+                              'Premium ₹99/mo',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.deepTeal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // 3. AI Motivational Coach Card (Page 3 - LLM Booster)
+              GlassCard(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.deepTeal.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Text('💬', style: TextStyle(fontSize: 18)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'AI Coach Daily Whisper',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.deepTeal),
+                              ),
+                              Text(
+                                'Life-Aware LLM',
+                                style: TextStyle(fontSize: 10, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '"$coachMessage"',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                              height: 1.35,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // 4. Active Injury Banner (if injury guard active)
               const ActiveInjuryBanner(),
 
-              // 3. Week-Ahead Load Strip
+              // 5. Week-Ahead Load Strip
               _buildWeekLoadStrip(context, ref, isDark),
               const SizedBox(height: 24),
 
@@ -143,6 +356,10 @@ class HomeScreen extends ConsumerWidget {
 
               // 6. No-Guilt Flex Streak Summary Card
               _buildStreakSummaryCard(context, ref, streakState, isDark),
+              const SizedBox(height: 20),
+
+              // 7. Context-Based Wellness Recommendation (Pages 7 & 8)
+              const ContextRecommendationCard(),
               const SizedBox(height: 32),
             ],
           ),

@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/models/anti_robot_state.dart';
 import '../../../core/models/workout.dart';
+import '../../progression/anti_robot_controller.dart';
 import '../../scaling/target_controller.dart';
 import '../../streaks/streak_controller.dart';
 
@@ -77,87 +79,17 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
   }
 
   void _showCompletionModal() {
-    final streakState = ref.read(streakControllerProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     showModalBottomSheet<void>(
       context: context,
       isDismissible: false,
       enableDrag: false,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkCard : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.mintAccent.withValues(alpha: 0.15),
-                ),
-                child: const Center(
-                  child: Text('🎉', style: TextStyle(fontSize: 42)),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Workout Complete!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'You showed up for your body today. Flex Streak is safe and burning bright.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.4,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Streak celebration banner
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.warmCoral.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text('🔥', style: TextStyle(fontSize: 22)),
-                    const SizedBox(width: 8),
-                    Text(
-                      '${streakState.streak.currentStreak} Day Flex Streak',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.warmCoral,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 28),
-
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // Dismiss bottom sheet
-                  Navigator.of(context).pop(); // Return to home/list
-                },
-                child: const Text('Back to Home'),
-              ),
-            ],
-          ),
-        );
+        return _WorkoutCompletionSheet(onClose: () {
+          Navigator.of(context).pop(); // Dismiss bottom sheet
+          Navigator.of(context).pop(); // Return to home/list
+        });
       },
     );
   }
@@ -331,3 +263,261 @@ class _ActiveWorkoutScreenState extends ConsumerState<ActiveWorkoutScreen> {
     );
   }
 }
+
+class _WorkoutCompletionSheet extends ConsumerStatefulWidget {
+  final VoidCallback onClose;
+
+  const _WorkoutCompletionSheet({required this.onClose});
+
+  @override
+  ConsumerState<_WorkoutCompletionSheet> createState() =>
+      _WorkoutCompletionSheetState();
+}
+
+class _WorkoutCompletionSheetState
+    extends ConsumerState<_WorkoutCompletionSheet> {
+  ExertionRating? _selectedExertion;
+
+  @override
+  Widget build(BuildContext context) {
+    final streakState = ref.watch(streakControllerProvider);
+    final antiRobot = ref.watch(antiRobotControllerProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 70,
+              height: 70,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppColors.mintAccent.withValues(alpha: 0.15),
+              ),
+              child: const Center(
+                child: Text('🎉', style: TextStyle(fontSize: 36)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Workout Complete!',
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'You showed up for your body today. Flex Streak is safe and burning bright.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: isDark
+                    ? AppColors.darkTextSecondary
+                    : AppColors.lightTextSecondary,
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Streak Flame Banner
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppColors.warmCoral.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text('🔥', style: TextStyle(fontSize: 20)),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${streakState.streak.currentStreak} Day Flex Streak Protected',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.warmCoral,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Anti-Robot Exertion Feedback Section (Pages 1 & 2)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.04)
+                    : const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.08)
+                      : Colors.black.withValues(alpha: 0.06),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Text('🤖', style: TextStyle(fontSize: 18)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Anti-Robot Check: How was this workout?',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.lightTextPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Apps usually push users like robots. We adapt your next challenge to your real stamina.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? AppColors.darkTextSecondary
+                          : AppColors.lightTextSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // 3 Exertion Options
+                  Column(
+                    children: ExertionRating.values.map((rating) {
+                      final isSelected = _selectedExertion == rating;
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() => _selectedExertion = rating);
+                            ref
+                                .read(antiRobotControllerProvider.notifier)
+                                .recordExertion(rating);
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? AppColors.deepTeal.withValues(alpha: 0.15)
+                                  : (isDark
+                                      ? Colors.white.withValues(alpha: 0.03)
+                                      : Colors.white),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppColors.deepTeal
+                                    : (isDark
+                                        ? Colors.white12
+                                        : Colors.black12),
+                                width: isSelected ? 1.5 : 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        rating.label,
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w700
+                                              : FontWeight.w600,
+                                          color: isSelected
+                                              ? AppColors.deepTeal
+                                              : null,
+                                        ),
+                                      ),
+                                      Text(
+                                        rating.description,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: isDark
+                                              ? AppColors.darkTextSecondary
+                                              : AppColors.lightTextSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isSelected)
+                                  const Icon(Icons.check_circle_rounded,
+                                      color: AppColors.deepTeal, size: 18),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  // If Kashtam-ah Irundhuchu selected, display the anti-robot badge
+                  if (_selectedExertion == ExertionRating.struggled) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.mintAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                            color:
+                                AppColors.mintAccent.withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('🛡️', style: TextStyle(fontSize: 16)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Anti-Robot Guard Triggered: Since Level ${antiRobot.currentLevel} felt tough, we won\'t force Level ${antiRobot.currentLevel + 1} tomorrow. An equivalent consolidation challenge is set instead!',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                height: 1.35,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.deepTeal,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            ElevatedButton(
+              onPressed: widget.onClose,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.deepTeal,
+                minimumSize: const Size.fromHeight(50),
+              ),
+              child: const Text('Back to Home'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

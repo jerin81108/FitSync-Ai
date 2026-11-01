@@ -5,10 +5,14 @@ import '../../core/models/notification_settings.dart';
 import '../../core/models/workout.dart';
 import '../../core/widgets/glass_card.dart';
 import '../auth/auth_controller.dart';
+import '../female_health/female_health_controller.dart';
+import '../female_health/widgets/female_health_modal.dart';
 import '../health/health_controller.dart';
 import '../home/screens/home_screen.dart';
+import '../monetization/widgets/premium_plan_modal.dart';
 import '../notifications/notification_controller.dart';
 import '../progress/screens/progress_screen.dart';
+import '../progression/anti_robot_controller.dart';
 import '../schedule/screens/schedule_screen.dart';
 import '../workouts/screens/active_workout_screen.dart';
 import '../workouts/screens/workout_list_screen.dart';
@@ -146,9 +150,96 @@ class _ProfileTab extends ConsumerWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
 
-            // Health Connect / HealthKit Sync Tile
+            // Premium Plan Subscription Card (Page 6)
+            GlassCard(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Row(
+                        children: [
+                          Text('💎', style: TextStyle(fontSize: 20)),
+                          SizedBox(width: 8),
+                          Text('FitSync AI Premium', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepTeal.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text('₹99 / mo', style: TextStyle(fontWeight: FontWeight.w800, color: AppColors.deepTeal, fontSize: 12)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Unlock Automatic Calendar Exam Sync, Female Period Engine, Anti-Robot Challenges, & LLM Coach.',
+                    style: TextStyle(fontSize: 12, height: 1.35, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () => PremiumPlanModal.show(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.deepTeal,
+                      minimumSize: const Size.fromHeight(42),
+                    ),
+                    child: const Text('View Plans & Upgrades', style: TextStyle(fontSize: 13)),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Female Health Sync Engine Tile (Page 4 & 5)
+            Consumer(
+              builder: (context, ref, _) {
+                final femaleHealth = ref.watch(femaleHealthControllerProvider);
+                return GlassCard(
+                  padding: const EdgeInsets.all(18),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.warmCoral.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Text('🌸', style: TextStyle(fontSize: 20)),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Female Health Sync Engine', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                            Text(
+                              femaleHealth.isCycleTrackingEnabled
+                                  ? 'Active: ${femaleHealth.currentPhase.label}'
+                                  : 'Cycle, PCOS Balance & Safety Mode',
+                              style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.tune_rounded, color: AppColors.warmCoral),
+                        onPressed: () => FemaleHealthModal.show(context),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Health Connect / Smartwatch Ecosystem (Pages 6 & 7: Noise, boAt, Fire-Boltt, Apple, Google)
             GlassCard(
               padding: const EdgeInsets.all(18),
               child: Column(

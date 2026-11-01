@@ -1,8 +1,8 @@
 /// Body regions supported by Injury Guard
 enum BodyArea {
-  knee('Knee', '🦵', 'Excludes squats, lunges, and jumping'),
+  knee('Knee (Mutti Vali 🦵)', '🦵', 'Excludes squats, lunges, and jumping'),
   ankle('Ankle', '🦶', 'Excludes plyometrics and impact running'),
-  lowerBack('Lower Back', '🧘', 'Excludes heavy deadlifts & spinal compression'),
+  lowerBack('Lower Back (Mudhugubali 🧘)', '🧘', 'Excludes heavy deadlifts & spinal compression'),
   shoulder('Shoulder', '💪', 'Excludes overhead pressing & pushups'),
   wrist('Wrist', '✋', 'Excludes floor pushups & plank loading'),
   neck('Neck', '👤', 'Excludes neck strain & cervical flexion'),

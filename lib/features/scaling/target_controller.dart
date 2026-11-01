@@ -17,7 +17,9 @@ class TargetController extends StateNotifier<DailyTarget> {
     _ref.listen(readinessControllerProvider, (previous, next) {
       if (previous?.readiness.score != next.readiness.score ||
           previous?.checkin.isHeavyDay != next.checkin.isHeavyDay ||
-          previous?.checkin.isExamDay != next.checkin.isExamDay) {
+          previous?.checkin.isExamDay != next.checkin.isExamDay ||
+          previous?.checkin.cyclePhase != next.checkin.cyclePhase ||
+          previous?.checkin.notes != next.checkin.notes) {
         _recalculate();
       }
     });

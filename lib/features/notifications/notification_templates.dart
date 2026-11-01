@@ -1,11 +1,13 @@
 import '../../core/models/notification_settings.dart';
 
 /// Non-guilt, life-aware notification template repository
+/// Supports English and Tanglish / Tamil-friendly AI coach messages (Pages 3 & 4)
 class NotificationTemplates {
   static final Map<String, Map<NotificationTone, List<String>>> _templates = {
     'exam_day': {
       NotificationTone.friendly: [
         'Exam week is heavy. A 10-minute gentle stretch will clear your head and protect your streak.',
+        'Hey, exam tension-la irukinga nu theriyum. Just taking a 10-minute stretch will clear your mind!',
         'Good luck with exams today! We dialed your target to light mode so you stay stress-free.',
       ],
       NotificationTone.calm: [
@@ -19,6 +21,7 @@ class NotificationTemplates {
     },
     'low_sleep': {
       NotificationTone.friendly: [
+        'Nethu night late-ah padichu tired-ah irundha paravala, streak break aagadhu. Light walk pothum!',
         'Short sleep logged last night. We’ve dialed today’s target way down so you recharge with zero guilt.',
         'Running low on rest? Today is about gentle recovery, not crushing robot targets.',
       ],
@@ -43,6 +46,30 @@ class NotificationTemplates {
       NotificationTone.playful: [
         'Stress monster spotted! Time for a quick 10-min zen reset to kick it out.',
         'Shake off the tension like a golden retriever. A quick stretch works wonders!',
+      ],
+    },
+    'cycle_menstrual': {
+      NotificationTone.friendly: [
+        'Periods apo rest edukuradhu weakness illa, smart recovery. Cramp-relief gentle yoga try pannunga 🌸.',
+        'Period cramp guard active. Heavy lifting is off; gentle stretching and warm tea are your best friends today.',
+      ],
+      NotificationTone.calm: [
+        'Honor your body’s natural rhythm. Rest is healing. We adjusted your targets to gentle restoration.',
+      ],
+      NotificationTone.playful: [
+        'Period shield on! Cozy up with heating patches and light stretching—streak stays 100% safe.',
+      ],
+    },
+    'anti_robot': {
+      NotificationTone.friendly: [
+        'Level 3 kashtam-ah irundhucha? Don\'t worry, robo maari force panna maatom. Namma steady-ah consolidate pannuvom!',
+        'Anti-Robot Guard: You gave your best today. We will consolidate this level before unlocking the next.',
+      ],
+      NotificationTone.calm: [
+        'True fitness is about patience and adaptation. Building a strong base beats rushing levels.',
+      ],
+      NotificationTone.playful: [
+        'Robot coach defeated! Human recovery mode engaged. Tomorrow we lock down this level.',
       ],
     },
     'push_day': {
@@ -91,7 +118,7 @@ class NotificationTemplates {
 
   /// Select best matching non-guilt message based on life context and preferred tone
   static String getMessage({
-    required String context, // 'exam_day', 'low_sleep', 'high_stress', 'push_day', 'rest_day', 'regular_morning'
+    required String context,
     required NotificationTone tone,
   }) {
     final contextMap = _templates[context] ?? _templates['regular_morning']!;

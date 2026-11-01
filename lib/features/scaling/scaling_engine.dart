@@ -124,6 +124,13 @@ class ScalingEngine {
       );
     }
 
+    if (checkin.notes == 'indoor') {
+      return (
+        id: 'bodyweight_endurance_starter',
+        name: 'Quick 15-Min Home Routine (Zero Equipment)',
+      );
+    }
+
     if (readiness.band == ReadinessBand.rest) {
       return (
         id: 'light_walking_breathing',

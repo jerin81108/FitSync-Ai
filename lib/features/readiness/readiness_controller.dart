@@ -55,6 +55,7 @@ class ReadinessController extends StateNotifier<ReadinessState> {
     String? cyclePhase,
     bool? hasActiveInjury,
     String? injurySeverity,
+    String? notes,
   }) async {
     state = state.copyWith(isCalculating: true);
 
@@ -69,6 +70,7 @@ class ReadinessController extends StateNotifier<ReadinessState> {
       isExamDay: isExamDay,
       cyclePhase: cyclePhase,
       hasActiveInjury: hasActiveInjury,
+      notes: notes,
     );
 
     final newReadiness = _engine.calculate(

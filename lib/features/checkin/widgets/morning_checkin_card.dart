@@ -198,6 +198,52 @@ class _MorningCheckinCardState extends ConsumerState<MorningCheckinCard> {
                 ),
               ],
             ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text('🌸 Period (Day 1-3)'),
+                    selected: checkin.cyclePhase?.toLowerCase() == 'menstrual',
+                    onSelected: (val) {
+                      controller.updateCheckin(
+                        cyclePhase: val ? 'menstrual' : null,
+                      );
+                    },
+                    selectedColor: AppColors.warmCoral.withValues(alpha: 0.2),
+                    labelStyle: TextStyle(
+                      color: checkin.cyclePhase?.toLowerCase() == 'menstrual'
+                          ? AppColors.warmCoral
+                          : AppColors.lightTextSecondary,
+                      fontWeight: checkin.cyclePhase?.toLowerCase() == 'menstrual'
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ChoiceChip(
+                    label: const Text('🏠 Home Indoor (No Gear)'),
+                    selected: checkin.notes == 'indoor',
+                    onSelected: (val) {
+                      controller.updateCheckin(
+                        notes: val ? 'indoor' : null,
+                      );
+                    },
+                    selectedColor: AppColors.deepTeal.withValues(alpha: 0.2),
+                    labelStyle: TextStyle(
+                      color: checkin.notes == 'indoor'
+                          ? AppColors.deepTeal
+                          : AppColors.lightTextSecondary,
+                      fontWeight: checkin.notes == 'indoor'
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ],
       ),

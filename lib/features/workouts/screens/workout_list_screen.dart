@@ -5,6 +5,7 @@ import '../../../core/models/workout.dart';
 import '../../../core/widgets/glass_card.dart';
 import '../../injury/injury_controller.dart';
 import '../../injury/widgets/active_injury_banner.dart';
+import '../../progression/anti_robot_controller.dart';
 import '../workout_library.dart';
 import 'active_workout_screen.dart';
 
@@ -51,6 +52,8 @@ class _WorkoutListScreenState extends ConsumerState<WorkoutListScreen> {
         ? baseWorkouts
         : baseWorkouts.where((w) => w.hasTag(_selectedTag)).toList();
 
+    final antiRobot = ref.watch(antiRobotControllerProvider);
+
     return Scaffold(
       backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
       appBar: AppBar(
@@ -60,6 +63,48 @@ class _WorkoutListScreenState extends ConsumerState<WorkoutListScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Anti-Robot Level Card (Page 1 & 2)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: antiRobot.isConsolidating
+                      ? AppColors.mintAccent.withValues(alpha: 0.12)
+                      : AppColors.deepTeal.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: antiRobot.isConsolidating
+                        ? AppColors.mintAccent.withValues(alpha: 0.3)
+                        : AppColors.deepTeal.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(antiRobot.isConsolidating ? '🛡️' : '🤖', style: const TextStyle(fontSize: 20)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            antiRobot.levelTitle,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                          ),
+                          Text(
+                            antiRobot.isConsolidating
+                                ? 'Consolidating Stamina: Equivalent challenge assigned'
+                                : 'Adaptive Progression: Calibrates to your real fatigue',
+                            style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
             // Active Injury Banner
             if (injuryState.hasActiveInjury)
               const Padding(
