@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/mindset_background.dart';
 import '../onboarding_controller.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -39,42 +40,46 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final effectiveTotalSteps = isMale ? 5 : 6;
     final progress = (state.currentStep + 1) / effectiveTotalSteps;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      appBar: AppBar(
-        leading: state.currentStep > 0
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new, size: 20),
-                onPressed: () => controller.previousStep(),
-              )
-            : null,
-        title: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: LinearProgressIndicator(
-            value: progress.clamp(0.0, 1.0),
-            backgroundColor: isDark ? Colors.white12 : Colors.black12,
-            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.deepTeal),
-            minHeight: 6,
-          ),
-        ),
-        actions: [
-          if (state.currentStep > 0)
-            TextButton(
-              onPressed: () async {
-                await controller.completeOnboarding();
-                widget.onCompleted();
-              },
-              child: const Text(
-                'Skip',
-                style: TextStyle(color: AppColors.lightTextSecondary, fontWeight: FontWeight.w600),
-              ),
+    return MindsetBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: state.currentStep > 0
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new, size: 20),
+                  onPressed: () => controller.previousStep(),
+                )
+              : null,
+          title: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              backgroundColor: isDark ? Colors.white12 : Colors.black12,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.deepTeal),
+              minHeight: 6,
             ),
-        ],
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          child: _buildCurrentStep(state, controller, isDark),
+          ),
+          actions: [
+            if (state.currentStep > 0)
+              TextButton(
+                onPressed: () async {
+                  await controller.completeOnboarding();
+                  widget.onCompleted();
+                },
+                child: const Text(
+                  'Skip',
+                  style: TextStyle(color: AppColors.lightTextSecondary, fontWeight: FontWeight.w600),
+                ),
+              ),
+          ],
+        ),
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            child: _buildCurrentStep(state, controller, isDark),
+          ),
         ),
       ),
     );
@@ -106,22 +111,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       children: [
         const Spacer(),
         Container(
-          width: 110,
-          height: 110,
+          width: 120,
+          height: 120,
           decoration: BoxDecoration(
-            color: AppColors.deepTeal.withValues(alpha: 0.12),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0F4C5C), Color(0xFF2EC4B6)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
             shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF2EC4B6).withValues(alpha: 0.35),
+                blurRadius: 24,
+                spreadRadius: 4,
+              ),
+            ],
           ),
           child: const Center(
-            child: Text('🌿', style: TextStyle(fontSize: 54)),
+            child: Text('🌿', style: TextStyle(fontSize: 58)),
           ),
         ),
         const SizedBox(height: 32),
         Text(
           'FitSync AI',
           style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w800,
+            fontSize: 34,
+            fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
             color: isDark ? Colors.white : AppColors.deepTeal,
           ),
@@ -138,17 +154,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ),
         const SizedBox(height: 16),
         Text(
-          'No robot targets. No broken streaks. When exams, stress, or low sleep get in the way, your target adapts automatically with zero guilt.',
+          'No robot targets. No broken streaks. When exams, stress, or low sleep get in the way, your daily targets adapt automatically with zero guilt.',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 15,
-            height: 1.45,
+            height: 1.5,
             color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
           ),
         ),
         const Spacer(),
         ElevatedButton(
           onPressed: () => controller.nextStep(),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.deepTeal,
+            minimumSize: const Size.fromHeight(52),
+          ),
           child: const Text('Get Started (under 60s)'),
         ),
         const SizedBox(height: 16),

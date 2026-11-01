@@ -153,6 +153,26 @@ class _RingPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
     canvas.drawCircle(center, radius, trackPaint);
 
+    // Subtle ambient shadow under arc
+    if (progress > 0.05) {
+      final glowPaint = Paint()
+        ..color = ringColor.withValues(alpha: 0.35)
+        ..strokeWidth = strokeWidth + 6
+        ..strokeCap = StrokeCap.round
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8)
+        ..style = PaintingStyle.stroke;
+
+      const startAngle = -math.pi / 2;
+      final sweepAngle = 2 * math.pi * progress.clamp(0.0, 1.0);
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        glowPaint,
+      );
+    }
+
     // Progress Arc with Round Cap
     final progressPaint = Paint()
       ..color = ringColor

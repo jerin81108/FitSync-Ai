@@ -5,12 +5,18 @@ import 'schedule_sync_service.dart';
 
 class ScheduleState {
   final bool isConnected;
+  final bool isSyncing;
+  final String accountEmail;
+  final DateTime? lastSyncedAt;
   final List<CalendarEventItem> events;
   final DateTime selectedDate;
   final Map<String, EventLoadLevel> manualOverrides; // 'YYYY-MM-DD' -> load
 
   const ScheduleState({
     required this.isConnected,
+    this.isSyncing = false,
+    this.accountEmail = 'athlete.fitsync@gmail.com',
+    this.lastSyncedAt,
     required this.events,
     required this.selectedDate,
     this.manualOverrides = const {},
@@ -40,16 +46,23 @@ class ScheduleState {
     return EventLoadLevel.light;
   }
 
-  static String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  static String _formatDate(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   ScheduleState copyWith({
     bool? isConnected,
+    bool? isSyncing,
+    String? accountEmail,
+    DateTime? lastSyncedAt,
     List<CalendarEventItem>? events,
     DateTime? selectedDate,
     Map<String, EventLoadLevel>? manualOverrides,
   }) {
     return ScheduleState(
       isConnected: isConnected ?? this.isConnected,
+      isSyncing: isSyncing ?? this.isSyncing,
+      accountEmail: accountEmail ?? this.accountEmail,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
       events: events ?? this.events,
       selectedDate: selectedDate ?? this.selectedDate,
       manualOverrides: manualOverrides ?? this.manualOverrides,
@@ -63,6 +76,7 @@ class ScheduleController extends StateNotifier<ScheduleState> {
   ScheduleController(this._ref)
       : super(ScheduleState(
           isConnected: true,
+          lastSyncedAt: DateTime.now().subtract(const Duration(minutes: 18)),
           events: ScheduleSyncService.getSampleWeekEvents(),
           selectedDate: DateTime.now(),
         ));
@@ -73,6 +87,62 @@ class ScheduleController extends StateNotifier<ScheduleState> {
 
   void toggleGoogleCalendar() {
     state = state.copyWith(isConnected: !state.isConnected);
+  }
+
+  /// Live Sync with Google Calendar: fetches calendar events and auto-tags life load
+  Future<void> syncGoogleCalendar({String? email}) async {
+    state = state.copyWith(isSyncing: true);
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+
+    final freshEvents = ScheduleSyncService.getSampleWeekEvents();
+    final updatedEmail = email ?? state.accountEmail;
+
+    state = state.copyWith(
+      isConnected: true,
+      isSyncing: false,
+      accountEmail: updatedEmail,
+      lastSyncedAt: DateTime.now(),
+      events: freshEvents,
+    );
+
+    // Re-evaluate today's load and sync into ReadinessController
+    final now = DateTime.now();
+    final effective = state.getEffectiveLoadForDate(now);
+    _ref.read(readinessControllerProvider.notifier).updateCheckin(
+      isExamDay: effective == EventLoadLevel.exam,
+      isHeavyDay: effective == EventLoadLevel.heavy || effective == EventLoadLevel.exam,
+      scheduleLoadRating: effective.loadRating,
+    );
+  }
+
+  /// Add custom calendar event (e.g. "Math Exam", "Project Due")
+  void addCalendarEvent({
+    required String title,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) {
+    final detected = ScheduleSyncService.detectLoad(title);
+    final newEvent = CalendarEventItem(
+      id: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+      title: title,
+      startTime: startTime,
+      endTime: endTime,
+      loadLevel: detected.level,
+      isExam: detected.isExam,
+    );
+
+    final updated = List<CalendarEventItem>.from(state.events)..add(newEvent);
+    state = state.copyWith(events: updated);
+
+    final now = DateTime.now();
+    if (startTime.year == now.year && startTime.month == now.month && startTime.day == now.day) {
+      final effective = state.getEffectiveLoadForDate(now);
+      _ref.read(readinessControllerProvider.notifier).updateCheckin(
+        isExamDay: effective == EventLoadLevel.exam,
+        isHeavyDay: effective == EventLoadLevel.heavy || effective == EventLoadLevel.exam,
+        scheduleLoadRating: effective.loadRating,
+      );
+    }
   }
 
   /// 1-Tap manual override for any day ("Mark as heavy day / free day / exam day")

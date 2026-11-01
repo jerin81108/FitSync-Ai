@@ -2,15 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/mindset_wisdom.dart';
+import '../../../core/theme/mindset_theme_controller.dart';
 import '../../../core/models/daily_target.dart';
 import '../../../core/models/workout.dart';
 import '../../../core/widgets/animated_readiness_ring.dart';
 import '../../../core/widgets/glass_card.dart';
+import '../../../core/widgets/mindset_background.dart';
+import '../../../core/widgets/mindset_reset_modal.dart';
 import '../../../core/widgets/why_target_bottom_sheet.dart';
 import '../../auth/auth_controller.dart';
 import '../../checkin/widgets/morning_checkin_card.dart';
 import '../../female_health/female_health_controller.dart';
 import '../../female_health/widgets/female_health_modal.dart';
+import '../../health/health_controller.dart';
 import '../../injury/screens/injury_guard_modal.dart';
 import '../../injury/widgets/active_injury_banner.dart';
 import '../../monetization/widgets/context_recommendation_card.dart';
@@ -20,11 +25,12 @@ import '../../notifications/notification_templates.dart';
 import '../../progression/anti_robot_controller.dart';
 import '../../readiness/readiness_controller.dart';
 import '../../scaling/target_controller.dart';
+import '../../schedule/schedule_controller.dart';
 import '../../streaks/streak_controller.dart';
 import '../../workouts/workout_library.dart';
 
 /// FitSync AI Home Dashboard
-/// Houses the animated Readiness Ring, adapted targets, week load strip, and quick check-in.
+/// Houses the animated Readiness Ring, adapted targets, device step count sync, Google Calendar load strip, and quick check-in.
 class HomeScreen extends ConsumerWidget {
   final void Function(Workout workout)? onStartWorkout;
 
@@ -38,7 +44,11 @@ class HomeScreen extends ConsumerWidget {
     final streakState = ref.watch(streakControllerProvider);
     final femaleHealth = ref.watch(femaleHealthControllerProvider);
     final antiRobot = ref.watch(antiRobotControllerProvider);
-    final notifController = ref.read(notificationControllerProvider.notifier);
+    final healthState = ref.watch(healthControllerProvider);
+    final healthController = ref.read(healthControllerProvider.notifier);
+    final scheduleState = ref.watch(scheduleControllerProvider);
+    final scheduleController = ref.read(scheduleControllerProvider.notifier);
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final userName = auth.user?.name ?? 'Athlete';
@@ -69,67 +79,112 @@ class HomeScreen extends ConsumerWidget {
       context: coachContext,
       tone: ref.watch(notificationControllerProvider).tone,
     );
+    final activeTheme = ref.watch(mindsetThemeControllerProvider);
 
-    return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Top Header Row (Greeting & Streak Flame)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Hi, $userName 👋',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? Colors.white : AppColors.lightTextPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        DateFormat('EEEE, MMM d').format(DateTime.now()),
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Streak Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.warmCoral.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.warmCoral.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+    return MindsetBackground(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Top Header Row (Greeting & Streak Flame)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('🔥', style: TextStyle(fontSize: 16)),
-                        const SizedBox(width: 6),
                         Text(
-                          '${streakState.streak.currentStreak}d Flex',
-                          style: const TextStyle(
+                          'Hi, $userName 👋',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : AppColors.lightTextPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          DateFormat('EEEE, MMM d').format(DateTime.now()),
+                          style: TextStyle(
                             fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.warmCoral,
+                            color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
+
+                    Row(
+                      children: [
+                        // Mindset Theme Vibe Button
+                        GestureDetector(
+                          onTap: () => MindsetBackground.showThemePicker(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: isDark ? Colors.white.withValues(alpha: 0.08) : Colors.black.withValues(alpha: 0.04),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isDark ? Colors.white12 : Colors.black12,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(activeTheme.emoji, style: const TextStyle(fontSize: 14)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  activeTheme.name.split(' ').first,
+                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Streak Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.warmCoral.withValues(alpha: 0.18),
+                                Colors.amber.withValues(alpha: 0.12),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: AppColors.warmCoral.withValues(alpha: 0.3)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.warmCoral.withValues(alpha: 0.15),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('🔥', style: TextStyle(fontSize: 16)),
+                              const SizedBox(width: 6),
+                              Text(
+                                '${streakState.streak.currentStreak}d Flex',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColors.warmCoral,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               const SizedBox(height: 14),
 
               // 2. Quick Life-Sync Action Strip (Female Health, Anti-Robot Level, Premium ₹99)
@@ -255,6 +310,40 @@ class HomeScreen extends ConsumerWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 8),
+
+                    // Mindset Reset 1-Min Pill
+                    GestureDetector(
+                      onTap: () => MindsetResetModal.show(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.mintAccent.withValues(alpha: 0.18),
+                              AppColors.deepTeal.withValues(alpha: 0.08),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.mintAccent.withValues(alpha: 0.35)),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('🧘', style: TextStyle(fontSize: 14)),
+                            SizedBox(width: 6),
+                            Text(
+                              'Mindset Reset',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.deepTeal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -269,7 +358,12 @@ class HomeScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppColors.deepTeal.withValues(alpha: 0.15),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.deepTeal.withValues(alpha: 0.2),
+                            AppColors.mintAccent.withValues(alpha: 0.1),
+                          ],
+                        ),
                         shape: BoxShape.circle,
                       ),
                       child: const Text('💬', style: TextStyle(fontSize: 18)),
@@ -308,16 +402,23 @@ class HomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
 
-              // 4. Active Injury Banner (if injury guard active)
+              // Daily Mindset Anchor & Cognitive Reframing Card
+              _buildMindsetAnchorCard(context, isDark),
+              const SizedBox(height: 14),
+
+              // 4. Google Calendar Live Sync Banner
+              _buildGoogleCalendarBanner(context, ref, scheduleState, scheduleController, isDark),
+              const SizedBox(height: 14),
+
+              // 5. Active Injury Banner (if injury guard active)
               const ActiveInjuryBanner(),
 
-              // 5. Week-Ahead Load Strip
+              // 6. Week-Ahead Load Strip
               _buildWeekLoadStrip(context, ref, isDark),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
-              // 3. Central Animated Readiness Ring Card
+              // 7. Central Animated Readiness Ring Card
               GlassCard(
                 padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                 child: Column(
@@ -346,24 +447,130 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 20),
 
-              // 4. Today's Adapted Target Card
-              _buildAdaptedTargetCard(context, ref, target, suggestedWorkout, ringColor, isDark),
+              // 8. Today's Adapted Target Card (with Live Device Steps Sync)
+              _buildAdaptedTargetCard(
+                context,
+                ref,
+                target,
+                suggestedWorkout,
+                healthState,
+                healthController,
+                ringColor,
+                isDark,
+              ),
               const SizedBox(height: 20),
 
-              // 5. Morning Check-in Card (10-second check-in)
+              // 9. Morning Check-in Card (10-second check-in)
               const MorningCheckinCard(),
               const SizedBox(height: 20),
 
-              // 6. No-Guilt Flex Streak Summary Card
+              // 10. No-Guilt Flex Streak Summary Card
               _buildStreakSummaryCard(context, ref, streakState, isDark),
               const SizedBox(height: 20),
 
-              // 7. Context-Based Wellness Recommendation (Pages 7 & 8)
+              // 11. Context-Based Wellness Recommendation (Pages 7 & 8)
               const ContextRecommendationCard(),
               const SizedBox(height: 32),
             ],
           ),
         ),
+      ),
+    ),
+  );
+}
+
+  // --- Google Calendar Live Sync Banner ---
+  Widget _buildGoogleCalendarBanner(
+    BuildContext context,
+    WidgetRef ref,
+    ScheduleState scheduleState,
+    ScheduleController scheduleController,
+    bool isDark,
+  ) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCard : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.deepTeal.withValues(alpha: 0.2),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: Colors.blue.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.calendar_month, color: Colors.blue, size: 18),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text(
+                      'Google Calendar',
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 12),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Synced',
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.green),
+                      ),
+                    ),
+                  ],
+                ),
+                Text(
+                  scheduleState.accountEmail,
+                  style: TextStyle(fontSize: 10, color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: scheduleState.isSyncing
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.deepTeal),
+                  )
+                : const Icon(Icons.sync_rounded, size: 20, color: AppColors.deepTeal),
+            tooltip: 'Sync Google Calendar',
+            onPressed: scheduleState.isSyncing
+                ? null
+                : () async {
+                    await scheduleController.syncGoogleCalendar();
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('📅 Google Calendar synced! Life-load keywords updated.'),
+                          backgroundColor: AppColors.deepTeal,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+          ),
+        ],
       ),
     );
   }
@@ -464,16 +671,21 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // --- Adapted Target Card ---
+  // --- Adapted Target Card (with Live Device Step Count Sync) ---
   Widget _buildAdaptedTargetCard(
     BuildContext context,
     WidgetRef ref,
     DailyTarget target,
     Workout workout,
+    HealthState healthState,
+    HealthController healthController,
     Color ringColor,
     bool isDark,
   ) {
     final targetController = ref.read(targetControllerProvider.notifier);
+    final currentSteps = healthState.snapshot.stepsToday;
+    final stepProgress = (currentSteps / (target.adaptedSteps > 0 ? target.adaptedSteps : 1)).clamp(0.0, 1.0);
+    final stepPct = (stepProgress * 100).round();
 
     return GlassCard(
       padding: const EdgeInsets.all(20),
@@ -540,12 +752,119 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
 
-          // Steps & Active Minutes Metrics
+          // Device Step Count Progress Box (Requested Feature)
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.deepTeal.withValues(alpha: 0.12),
+                  AppColors.mintAccent.withValues(alpha: 0.06),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.25)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        const Text('📱', style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 6),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Device Step Count',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                            ),
+                            Text(
+                              healthState.snapshot.sourceName,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: healthState.isSyncing
+                          ? null
+                          : () async {
+                              await healthController.syncDeviceSteps();
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('⚡ Device steps synced from hardware sensor!'),
+                                    backgroundColor: AppColors.deepTeal,
+                                    duration: Duration(seconds: 2),
+                                  ),
+                                );
+                              }
+                            },
+                      icon: healthState.isSyncing
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.sync_rounded, size: 14, color: Colors.white),
+                      label: Text(
+                        healthState.isSyncing ? 'Syncing...' : 'Sync Steps',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.deepTeal,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        minimumSize: const Size(0, 32),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      '$currentSteps / ${target.adaptedSteps} steps',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                    ),
+                    Text(
+                      '$stepPct%',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.deepTeal),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: stepProgress,
+                    minHeight: 8,
+                    backgroundColor: isDark ? Colors.white10 : Colors.black12,
+                    valueColor: const AlwaysStoppedAnimation<Color>(AppColors.deepTeal),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Steps & Active Minutes & Calorie Metrics Row
           Row(
             children: [
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(16),
@@ -553,23 +872,26 @@ class HomeScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Adapted Steps',
-                        style: TextStyle(fontSize: 12, color: AppColors.lightTextSecondary),
+                      const Row(
+                        children: [
+                          Text('👟', style: TextStyle(fontSize: 12)),
+                          SizedBox(width: 4),
+                          Text('Adapted Steps', style: TextStyle(fontSize: 11, color: AppColors.lightTextSecondary)),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${target.adaptedSteps}',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(16),
@@ -577,14 +899,44 @@ class HomeScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Active Minutes',
-                        style: TextStyle(fontSize: 12, color: AppColors.lightTextSecondary),
+                      const Row(
+                        children: [
+                          Text('⏱️', style: TextStyle(fontSize: 12)),
+                          SizedBox(width: 4),
+                          Text('Active Minutes', style: TextStyle(fontSize: 11, color: AppColors.lightTextSecondary)),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${target.adaptedActiveMinutes} min',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                        '${target.adaptedActiveMinutes}m',
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white.withValues(alpha: 0.04) : const Color(0xFFF8F9FA),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Row(
+                        children: [
+                          Text('🔥', style: TextStyle(fontSize: 12)),
+                          SizedBox(width: 4),
+                          Text('Burn', style: TextStyle(fontSize: 11, color: AppColors.lightTextSecondary)),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${(target.adaptedActiveMinutes * 6.8).round()} kcal',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                       ),
                     ],
                   ),
@@ -778,6 +1130,93 @@ class HomeScreen extends ConsumerWidget {
           style: const TextStyle(fontSize: 11, color: AppColors.lightTextSecondary),
         ),
       ],
+    );
+  }
+
+  // --- Mindset Anchor & Mental Reframing Card ---
+  Widget _buildMindsetAnchorCard(BuildContext context, bool isDark) {
+    final anchor = MindsetWisdom.getTodaysAnchor();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.deepTeal.withValues(alpha: 0.12),
+            AppColors.mintAccent.withValues(alpha: 0.06),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.deepTeal.withValues(alpha: 0.25),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text(anchor.emoji, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Daily Mindset Anchor',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.deepTeal),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.deepTeal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  anchor.category,
+                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.deepTeal),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            anchor.title,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '"${anchor.quote}"',
+            style: TextStyle(
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+              height: 1.35,
+              color: isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => MindsetResetModal.show(context),
+              icon: const Text('🧘', style: TextStyle(fontSize: 14)),
+              label: const Text(
+                '1-Min Breath Reset',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.deepTeal),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
